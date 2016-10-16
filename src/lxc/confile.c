@@ -70,6 +70,7 @@ static int config_rootfs_options(const char *, const char *, struct lxc_conf *);
 static int config_pivotdir(const char *, const char *, struct lxc_conf *);
 static int config_utsname(const char *, const char *, struct lxc_conf *);
 static int config_hook(const char *, const char *, struct lxc_conf *lxc_conf);
+static int config_rlimit(const char *, const char *, struct lxc_conf *);
 static int config_network_type(const char *, const char *, struct lxc_conf *);
 static int config_network_flags(const char *, const char *, struct lxc_conf *);
 static int config_network_link(const char *, const char *, struct lxc_conf *);
@@ -123,6 +124,9 @@ static struct lxc_config_t config[] = {
 	{ "lxc.hook.start",           config_hook                 },
 	{ "lxc.hook.post-stop",       config_hook                 },
 	{ "lxc.hook.clone",           config_hook                 },
+	{ "lxc.rlimit.core",          config_rlimit               },
+	{ "lxc.rlimit.memlock",       config_rlimit               },
+	{ "lxc.rlimit.nofile",        config_rlimit               },
 	{ "lxc.network.type",         config_network_type         },
 	{ "lxc.network.flags",        config_network_flags        },
 	{ "lxc.network.link",         config_network_link         },
@@ -957,6 +961,71 @@ static int config_hook(const char *key, const char *value,
 		return add_hook(lxc_conf, LXCHOOK_CLONE, copy);
 	SYSERROR("Unknown key: %s", key);
 	free(copy);
+	return -1;
+}
+
+/*
+ * Validate lxc.rlimit options, convert to long and fill in the lxc_conf
+ */
+static int config_rlimit(const char *key, const char *value,
+		      struct lxc_conf *lxc_conf)
+{
+	long num;
+	char *endp = NULL;
+	rlim_t *rlim_mem;
+
+	DEBUG("%s = %s", key, value);
+
+	// Convert string to long
+	errno = 0;
+	num = strtol(value, &endp, 10);
+	if (!endp || *endp != '\0' || errno != 0) {
+		DEBUG("%s: strtol(%s) -> %ld", key, value, num);
+		ERROR("Can't parse %s=%s", key, value);
+		return -1;
+	}
+
+	DEBUG("%s = %ld (%d/%s)", key, num, errno, strerror(errno));
+
+	// Set values for present keys. Left others unset, so that later we can
+	// distinguish between limit of 0 and unset (empty) limits.
+	rlim_mem = malloc(sizeof(rlim_t));
+	if (!rlim_mem) {
+		SYSERROR("failed to allocate memory for rlim_mem");
+		return -1;
+	}
+	*rlim_mem = num;
+
+	if(strcmp(key, "lxc.rlimit.core") == 0) {
+		if (lxc_conf->rlimit_core) {
+			NOTICE("%s already set to %lu, overriding with the new value of %lu",
+				key, *lxc_conf->rlimit_core, *rlim_mem);
+			free(lxc_conf->rlimit_core);
+		}
+		lxc_conf->rlimit_core = rlim_mem;
+		return 0;
+	}
+	else if (strcmp(key, "lxc.rlimit.memlock") == 0) {
+		if (lxc_conf->rlimit_memlock) {
+			NOTICE("%s already set to %lu, overriding with the new value of %lu",
+				key, *lxc_conf->rlimit_memlock, *rlim_mem);
+			free(lxc_conf->rlimit_memlock);
+		}
+		lxc_conf->rlimit_memlock = rlim_mem;
+		return 0;
+	}
+	else if (strcmp(key, "lxc.rlimit.nofile") == 0) {
+		if (lxc_conf->rlimit_nofile) {
+			NOTICE("%s already set to %lu, overriding with the new value of %lu",
+				key, *lxc_conf->rlimit_nofile, *rlim_mem);
+			free(lxc_conf->rlimit_nofile);
+		}
+		lxc_conf->rlimit_nofile = rlim_mem;
+		return 0;
+	}
+
+	free(rlim_mem);
+	SYSERROR("Unknown key: %s", key);
 	return -1;
 }
 

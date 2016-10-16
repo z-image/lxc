@@ -28,6 +28,7 @@
 #include <netinet/in.h>
 #include <net/if.h>
 #include <sys/param.h>
+#include <sys/resource.h>
 #include <sys/types.h>
 #include <stdbool.h>
 
@@ -298,6 +299,13 @@ struct lxc_conf {
 	char *ttydir;
 	int close_all_fds;
 	struct lxc_list hooks[NUM_LXC_HOOKS];
+
+	// If we plan to add more rlimits then maybe use lxc_list.
+	// Use pointers, so that we can distinguish empty (no limit) from 0
+	// limit later.
+	rlim_t *rlimit_core;
+	rlim_t *rlimit_memlock;
+	rlim_t *rlimit_nofile;
 
 	char *lsm_aa_profile;
 	char *lsm_se_context;

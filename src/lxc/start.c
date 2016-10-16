@@ -609,6 +609,59 @@ static int read_unpriv_netifindex(struct lxc_list *network)
 	return 0;
 }
 
+/*
+ * Set configured rlimits (ulimit)
+ *
+ * Makes sense only for unprivileged containers.
+ *
+ * Privileged containers are considered unsafe, so playing
+ * with CAP_SYS_RESOURCE is not worth it.
+ *
+ * No soft limit support for now (soft = max).
+ */
+static int set_rlimits(struct lxc_conf *conf)
+{
+	struct rlimit new;
+
+	if (conf->rlimit_core != NULL) {
+		DEBUG("rlimit_core: %ld", (long) *conf->rlimit_core);
+
+		new.rlim_max = *conf->rlimit_core;
+		new.rlim_cur = new.rlim_max;
+
+		if (setrlimit(RLIMIT_CORE, &new) == -1) {
+			ERROR("setrlimit() core = %ld: %s", (long) new.rlim_max, strerror(errno));
+			return -1;
+		}
+	}
+
+	if (conf->rlimit_memlock != NULL) {
+		DEBUG("rlimit_memlock: %ld", (long) *conf->rlimit_memlock);
+
+		new.rlim_max = *conf->rlimit_memlock;
+		new.rlim_cur = new.rlim_max;
+
+		if (setrlimit(RLIMIT_MEMLOCK, &new) == -1) {
+			ERROR("setrlimit() memlock = %ld: %s", (long) new.rlim_max, strerror(errno));
+			return -1;
+		}
+	}
+
+	if (conf->rlimit_nofile != NULL) {
+		DEBUG("rlimit_nofile: %ld", (long) *conf->rlimit_nofile);
+
+		new.rlim_max = *conf->rlimit_nofile;
+		new.rlim_cur = new.rlim_max;
+
+		if (setrlimit(RLIMIT_NOFILE, &new) == -1) {
+			ERROR("setrlimit() nofile = %ld: %s", (long) new.rlim_max, strerror(errno));
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
 static int do_start(void *data)
 {
 	struct lxc_handler *handler = data;
@@ -635,6 +688,11 @@ static int do_start(void *data)
 	/* don't leak the pinfd to the container */
 	if (handler->pinfd >= 0) {
 		close(handler->pinfd);
+	}
+
+	if (set_rlimits(handler->conf)) {
+		SYSERROR("failed to set rlimits");
+		return -1;
 	}
 
 	/* Tell the parent task it can begin to configure the

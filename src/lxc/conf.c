@@ -2652,6 +2652,9 @@ struct lxc_conf *lxc_conf_init(void)
 	for (i=0; i<NUM_LXC_HOOKS; i++)
 		lxc_list_init(&new->hooks[i]);
 	lxc_list_init(&new->groups);
+	new->rlimit_core = NULL;
+	new->rlimit_memlock = NULL;
+	new->rlimit_nofile = NULL;
 	new->lsm_aa_profile = NULL;
 	new->lsm_se_context = NULL;
 	new->tmp_umount_proc = 0;
