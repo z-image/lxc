@@ -149,7 +149,8 @@ return -1;
 #endif
 
 char *lxchook_names[NUM_LXC_HOOKS] = {
-	"pre-start", "pre-mount", "mount", "autodev", "start", "post-stop", "clone" };
+	"pre-start", "cgroup-init", "pre-mount", "mount", "autodev", "start",
+	"post-stop", "clone" };
 
 typedef int (*instanciate_cb)(struct lxc_handler *, struct lxc_netdev *);
 
@@ -3839,6 +3840,8 @@ int run_lxc_hooks(const char *name, char *hook, struct lxc_conf *conf,
 
 	if (strcmp(hook, "pre-start") == 0)
 		which = LXCHOOK_PRESTART;
+	else if (strcmp(hook, "cgroup-init") == 0)
+		which = LXCHOOK_CGROUPINIT;
 	else if (strcmp(hook, "pre-mount") == 0)
 		which = LXCHOOK_PREMOUNT;
 	else if (strcmp(hook, "mount") == 0)

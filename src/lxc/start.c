@@ -849,6 +849,11 @@ static int lxc_spawn(struct lxc_handler *handler)
 		goto out_delete_net;
 	}
 
+	if (run_lxc_hooks(handler->name, "cgroup-init", handler->conf, handler->lxcpath, NULL)) {
+		ERROR("failed to run cgroup-init hooks for container '%s'.", handler->name);
+		goto out_abort;
+	}
+
 	/*
 	 * if the rootfs is not a blockdev, prevent the container from
 	 * marking it readonly.

@@ -117,6 +117,7 @@ static struct lxc_config_t config[] = {
 	{ "lxc.pivotdir",             config_pivotdir             },
 	{ "lxc.utsname",              config_utsname              },
 	{ "lxc.hook.pre-start",       config_hook                 },
+	{ "lxc.hook.cgroup-init",     config_hook                 },
 	{ "lxc.hook.pre-mount",       config_hook                 },
 	{ "lxc.hook.mount",           config_hook                 },
 	{ "lxc.hook.autodev",         config_hook                 },
@@ -955,6 +956,8 @@ static int config_hook(const char *key, const char *value,
 		return add_hook(lxc_conf, LXCHOOK_POSTSTOP, copy);
 	else if (strcmp(key, "lxc.hook.clone") == 0)
 		return add_hook(lxc_conf, LXCHOOK_CLONE, copy);
+	else if (strcmp(key, "lxc.hook.cgroup-init") == 0)
+		return add_hook(lxc_conf, LXCHOOK_CGROUPINIT, copy);
 	SYSERROR("Unknown key: %s", key);
 	free(copy);
 	return -1;
