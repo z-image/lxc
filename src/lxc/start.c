@@ -610,12 +610,13 @@ static int read_unpriv_netifindex(struct lxc_list *network)
 }
 
 /*
- * Set configured rlimits (ulimit)
+ * Set configured rlimits (ulimit).
  *
- * Makes sense only for unprivileged containers.
- *
- * Privileged containers are considered unsafe, so playing
- * with CAP_SYS_RESOURCE is not worth it.
+ * Makes sense mainly with unprivileged containers, because privileged process
+ * in privileged container may make arbitrary changes to ulimits. LXC
+ * upstream's position is that privileged containers aren't and cannot be
+ * root-safe, so trying to combine ulimits with CAP_SYS_RESOURCE is not worth
+ * it.
  *
  * No soft limit support for now (soft = max).
  */
